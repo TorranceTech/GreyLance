@@ -48,6 +48,20 @@ Since the fork, it has been substantially rewritten and extended:
 
 ---
 
+## 🖼 Screenshots
+
+The React/FastAPI GUI, running a real scan against an authorized local target:
+
+| New Scan (authorization gate) | Findings (OWASP-tagged) |
+|---|---|
+| ![New scan form with the mandatory authorization checkbox](screenshots/gui-new-scan.png) | ![Populated results view with severity and OWASP Top 10 badges](screenshots/gui-results.png) |
+
+| Live scan log (WebSocket) | Scan History |
+|---|---|
+| ![Real-time log stream of the scan phases](screenshots/gui-logs.png) | ![Scan history list](screenshots/gui-history.png) |
+
+---
+
 ## 🔥 Key Features
 
 ### 🔍 Phase 1 — Reconnaissance & Discovery

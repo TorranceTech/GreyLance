@@ -3,9 +3,12 @@ FastAPI Backend — real-time scan progress via WebSocket
 """
 
 import asyncio
+import contextvars
 import json
+import re
 import uuid
 from datetime import datetime
+from io import StringIO
 from pathlib import Path
 from typing import Optional
 
@@ -14,6 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from rich.console import Console
 
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -69,30 +73,40 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 
-# ── Redirect the Rich console to WebSocket ──────────────
-class WSConsole:
-    """Instead of the Rich console — send messages to the WS"""
-    def __init__(self, scan_id: str, loop: asyncio.AbstractEventLoop):
-        self.scan_id = scan_id
-        self.loop = loop
-        self._buffer = []
+# ── Broadcast every Rich console.print() to the owning scan's WebSocket ──
+# Every module in core/ and modules/ builds its own module-level `Console()`
+# instance, so there's no single console object to swap out per-request.
+# Instead, patch Console.print itself (once, at import time) and use a
+# contextvar to know which scan_id the currently-running asyncio task
+# belongs to — each `_run_scan` task gets its own isolated copy of the
+# contextvar, so concurrent scans don't cross-talk.
+_current_scan_id: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
+    "current_scan_id", default=None
+)
+_original_console_print = Console.print
 
-    def print(self, *args, **kwargs):
-        # Strip Rich markup
-        import re
-        text = " ".join(str(a) for a in args)
-        text = re.sub(r'\[/?[^\]]+\]', '', text)
-        text = text.strip()
-        if text:
-            self._buffer.append(text)
-            asyncio.run_coroutine_threadsafe(
-                manager.send(self.scan_id, {
-                    "type": "log",
-                    "message": text,
-                    "timestamp": datetime.now().isoformat(),
-                }),
-                self.loop
-            )
+
+def _broadcasting_print(self, *args, **kwargs):
+    _original_console_print(self, *args, **kwargs)
+    scan_id = _current_scan_id.get()
+    if not scan_id:
+        return
+    # Render through a plain (no-color) Console so Rich renderables like
+    # Panel/Table come out as readable text instead of a bare repr — call
+    # the *original* print here, since Console.print is patched globally.
+    buf = StringIO()
+    plain_console = Console(file=buf, width=100, no_color=True, highlight=False)
+    _original_console_print(plain_console, *args, **kwargs)
+    text = re.sub(r'\[/?[^\]]+\]', '', buf.getvalue()).strip()
+    if text:
+        asyncio.create_task(manager.send(scan_id, {
+            "type": "log",
+            "message": text,
+            "timestamp": datetime.now().isoformat(),
+        }))
+
+
+Console.print = _broadcasting_print
 
 
 # ── Endpoints ──────────────────────────────────────────
@@ -124,6 +138,7 @@ async def start_scan(req: ScanRequest):
 
 
 async def _run_scan(scan_id: str, req: ScanRequest):
+    _current_scan_id.set(scan_id)
     active_scans[scan_id]["status"] = "running"
 
     await manager.send(scan_id, {
