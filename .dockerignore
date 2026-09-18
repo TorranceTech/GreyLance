@@ -1,0 +1,13 @@
+.git/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+gui/frontend/node_modules/
+gui/frontend/dist/
+reports/*.json
+reports/*.html
+!reports/template.html
+tests/
+.github/
+path/

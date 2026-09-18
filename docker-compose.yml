@@ -1,0 +1,17 @@
+services:
+  # GreyLance itself — run one-off scans against a target, e.g.:
+  #   docker compose run --rm greylance scan http://juice-shop:3000 --authorized --no-subdomains
+  greylance:
+    build: .
+    depends_on:
+      - juice-shop
+    volumes:
+      - ./reports:/app/reports
+
+  # OWASP Juice Shop — an intentionally vulnerable app, safe and legal to
+  # scan freely on your own machine. Gives GreyLance a real target to find
+  # real findings on without needing an authorized external target.
+  juice-shop:
+    image: bkimminich/juice-shop
+    ports:
+      - "3000:3000"
