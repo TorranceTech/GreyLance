@@ -43,7 +43,7 @@ def load_config() -> dict:
         return yaml.safe_load(f)
 
 
-class BugScanner:
+class GreyLanceScanner:
     def __init__(
         self,
         config: dict = None,
@@ -98,7 +98,7 @@ class BugScanner:
             else "[dim]OFF[/dim]"
         )
         console.print(Panel.fit(
-            f"[bold cyan]BugScanner[/bold cyan] [dim]v2.0[/dim]\n"
+            f"[bold cyan]GreyLance[/bold cyan] [dim]v2.0[/dim]\n"
             f"[bold]Target:[/bold]         {target}\n"
             f"[bold]Auth:[/bold]           {auth_status}\n"
             f"[bold]Business Logic:[/bold] {bl_status}\n"

@@ -32,6 +32,7 @@ export default function Scanner({ onScanStart }) {
     port_mode: 'common',
     skip_subdomains: false,
     rps: 10,
+    authorized: false,
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -41,6 +42,10 @@ export default function Scanner({ onScanStart }) {
   const handleScan = async () => {
     if (!form.url.trim()) {
       setError('Enter a URL')
+      return
+    }
+    if (!form.authorized) {
+      setError('You must confirm authorization before scanning.')
       return
     }
     setError(null)
@@ -141,6 +146,24 @@ export default function Scanner({ onScanStart }) {
           </label>
         </div>
 
+        {/* Authorization gate */}
+        <div style={{
+          marginBottom: '1.5rem', display: 'flex', alignItems: 'flex-start', gap: '0.7rem',
+          background: '#422006', border: '1px solid #ca8a04', borderRadius: '8px', padding: '0.9rem 1rem',
+        }}>
+          <input
+            type="checkbox"
+            id="authorized"
+            checked={form.authorized}
+            onChange={e => update('authorized', e.target.checked)}
+            style={{ accentColor: '#38bdf8', width: 16, height: 16, marginTop: '0.2rem' }}
+          />
+          <label htmlFor="authorized" style={{ color: '#fde047', fontSize: '0.85rem' }}>
+            I have explicit authorization to test this target (I own it, or have written permission —
+            e.g. a pentest engagement or a bug bounty program's in-scope assets).
+          </label>
+        </div>
+
         {error && (
           <div style={{
             background: '#450a0a', border: '1px solid #dc2626',
@@ -153,15 +176,15 @@ export default function Scanner({ onScanStart }) {
 
         <button
           onClick={handleScan}
-          disabled={loading}
+          disabled={loading || !form.authorized}
           style={{
             width: '100%',
             padding: '0.9rem',
             borderRadius: '10px',
             border: 'none',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            background: loading ? '#334155' : 'linear-gradient(135deg, #0ea5e9, #38bdf8)',
-            color: loading ? '#64748b' : '#0f1117',
+            cursor: (loading || !form.authorized) ? 'not-allowed' : 'pointer',
+            background: (loading || !form.authorized) ? '#334155' : 'linear-gradient(135deg, #0ea5e9, #38bdf8)',
+            color: (loading || !form.authorized) ? '#64748b' : '#0f1117',
             fontWeight: 700,
             fontSize: '1rem',
             transition: 'all 0.2s',

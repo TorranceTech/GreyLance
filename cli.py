@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-BugScanner CLI v2.0
+GreyLance CLI v2.0
 """
 
 import asyncio
@@ -9,27 +9,53 @@ from pathlib import Path
 
 import click
 from rich.console import Console
+from rich.panel import Panel
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from core.scanner import BugScanner
+from core.scanner import GreyLanceScanner
 from core.reporter import Reporter
 
 console = Console()
 
 
 def print_banner():
-    console.print("""
-[bold cyan]
-  ██████╗ ██╗   ██╗ ██████╗ ███████╗ ██████╗ █████╗ ███╗   ██╗
-  ██╔══██╗██║   ██║██╔════╝ ██╔════╝██╔════╝██╔══██╗████╗  ██║
-  ██████╔╝██║   ██║██║  ███╗███████╗██║     ███████║██╔██╗ ██║
-  ██╔══██╗██║   ██║██║   ██║╚════██║██║     ██╔══██║██║╚██╗██║
-  ██████╔╝╚██████╔╝╚██████╔╝███████║╚██████╗██║  ██║██║ ╚████║
-  ╚═════╝  ╚═════╝  ╚═════╝ ╚══════╝ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═══╝
-[/bold cyan]
-[dim]  Bug Bounty Automation Tool v2.0 — Authorized use only[/dim]
-""")
+    console.print(Panel.fit(
+        "[bold cyan]GREYLANCE[/bold cyan]\n"
+        "[dim]Web Vulnerability Assessment & Recon Framework — v2.0[/dim]\n"
+        "[dim]Authorized use only[/dim]",
+        border_style="cyan",
+    ))
+
+
+def confirm_authorization(target: str, auto_confirm: bool) -> None:
+    """Refuse to scan without an explicit authorization confirmation."""
+    if auto_confirm:
+        console.print("[dim]Authorization confirmed via --authorized flag.[/dim]")
+        return
+
+    if not sys.stdin.isatty():
+        console.print(
+            "[bold red]✖ Refusing to run:[/bold red] non-interactive session and "
+            "no --authorized flag. Pass --authorized only if you have explicit "
+            "permission to test this target."
+        )
+        sys.exit(1)
+
+    console.print(
+        "\n[bold yellow]⚠ AUTHORIZATION REQUIRED[/bold yellow]\n"
+        "This tool performs active security testing (injected payloads, port scans,\n"
+        "endpoint brute-forcing). Only run it against systems you own or have explicit,\n"
+        "documented permission to test (a pentest engagement, a bug bounty program's\n"
+        "in-scope assets, or your own lab).\n"
+    )
+    typed = click.prompt(
+        f"Type the target host ('{target}') to confirm you are authorized",
+        default="", show_default=False,
+    )
+    if typed.strip() != target.strip():
+        console.print("[bold red]✖ Confirmation did not match. Aborting.[/bold red]")
+        sys.exit(1)
 
 
 def parse_cookies(cookie_list: tuple) -> dict:
@@ -66,7 +92,7 @@ def parse_headers(header_list: tuple) -> dict:
 
 @click.group()
 def cli():
-    """BugScanner v2.0 — Bug Bounty Automation Tool"""
+    """GreyLance v2.0 — Web Vulnerability Assessment & Recon Framework"""
     pass
 
 
@@ -145,10 +171,17 @@ def cli():
     default=False,
     help="Skip the nuclei scan",
 )
+@click.option(
+    "--authorized",
+    is_flag=True,
+    default=False,
+    help="Confirm you have explicit authorization to test this target "
+         "(skips the interactive prompt — required for non-interactive/CI use)",
+)
 def scan(
     url, mode, ports, no_subdomains, output, format,
     rps, cookie, header, proxy,
-    business_logic, no_fp_validation, no_nuclei,
+    business_logic, no_fp_validation, no_nuclei, authorized,
 ):
     """
     Scan the target URL.
@@ -186,6 +219,7 @@ def scan(
         --ports common
     """
     print_banner()
+    confirm_authorization(url, authorized)
 
     # Cookie + Header parse
     parsed_cookies = parse_cookies(cookie)
@@ -214,7 +248,7 @@ def scan(
         config["rate_limiting"]["default_rps"] = rps
 
     async def run():
-        scanner = BugScanner(
+        scanner = GreyLanceScanner(
             config=config,
             cookies=parsed_cookies,
             headers=parsed_headers,
@@ -258,7 +292,11 @@ def scan(
 )
 @click.option("--no-subdomains", is_flag=True)
 @click.option("--output", "-o", default="./reports")
-def recon(url, ports, no_subdomains, output):
+@click.option(
+    "--authorized", is_flag=True, default=False,
+    help="Confirm you have explicit authorization to test this target",
+)
+def recon(url, ports, no_subdomains, output, authorized):
     """
     Recon only — subdomain + port + fingerprint + discovery.
 
@@ -267,9 +305,10 @@ def recon(url, ports, no_subdomains, output):
       python cli.py recon https://target.com --ports extended
     """
     print_banner()
+    confirm_authorization(url, authorized)
 
     async def run():
-        scanner = BugScanner()
+        scanner = GreyLanceScanner()
         result = await scanner.scan(
             target=url,
             modes=["recon"],
@@ -289,7 +328,11 @@ def recon(url, ports, no_subdomains, output):
 @click.option("--proxy", default=None)
 @click.option("--output", "-o", default="./reports")
 @click.option("--no-fp-validation", is_flag=True, default=False)
-def vulnscan(url, cookie, header, proxy, output, no_fp_validation):
+@click.option(
+    "--authorized", is_flag=True, default=False,
+    help="Confirm you have explicit authorization to test this target",
+)
+def vulnscan(url, cookie, header, proxy, output, no_fp_validation, authorized):
     """
     Only vulnerability scan — without recon.
 
@@ -299,12 +342,13 @@ def vulnscan(url, cookie, header, proxy, output, no_fp_validation):
         --cookie "session=abc123"
     """
     print_banner()
+    confirm_authorization(url, authorized)
 
     parsed_cookies = parse_cookies(cookie)
     parsed_headers = parse_headers(header)
 
     async def run():
-        scanner = BugScanner(
+        scanner = GreyLanceScanner(
             cookies=parsed_cookies,
             headers=parsed_headers,
             proxy=proxy,
@@ -327,7 +371,11 @@ def vulnscan(url, cookie, header, proxy, output, no_fp_validation):
 @click.option("--header", "-H", multiple=True)
 @click.option("--proxy", default=None)
 @click.option("--output", "-o", default="./reports")
-def bizlogic(url, cookie, header, proxy, output):
+@click.option(
+    "--authorized", is_flag=True, default=False,
+    help="Confirm you have explicit authorization to test this target",
+)
+def bizlogic(url, cookie, header, proxy, output, authorized):
     """
     Business logic scan — authenticated.
 
@@ -338,6 +386,7 @@ def bizlogic(url, cookie, header, proxy, output):
         --proxy http://127.0.0.1:8080
     """
     print_banner()
+    confirm_authorization(url, authorized)
 
     parsed_cookies = parse_cookies(cookie)
     parsed_headers = parse_headers(header)
@@ -350,7 +399,7 @@ def bizlogic(url, cookie, header, proxy, output):
         )
 
     async def run():
-        scanner = BugScanner(
+        scanner = GreyLanceScanner(
             cookies=parsed_cookies,
             headers=parsed_headers,
             proxy=proxy,
@@ -371,8 +420,8 @@ def bizlogic(url, cookie, header, proxy, output):
 @cli.command()
 def version():
     """Version information"""
-    console.print("[bold cyan]BugScanner[/bold cyan] v2.0")
-    console.print("[dim]Bug Bounty Automation Tool[/dim]")
+    console.print("[bold cyan]GreyLance[/bold cyan] v2.0")
+    console.print("[dim]Web Vulnerability Assessment & Recon Framework[/dim]")
     console.print("[dim]Authorized use only[/dim]")
 
 

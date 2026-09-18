@@ -18,10 +18,10 @@ from pydantic import BaseModel
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from core.scanner import BugScanner
+from core.scanner import GreyLanceScanner
 from core.reporter import Reporter
 
-app = FastAPI(title="BugScanner API", version="1.0")
+app = FastAPI(title="GreyLance API", version="1.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -42,6 +42,7 @@ class ScanRequest(BaseModel):
     skip_subdomains: bool = False
     rps: float = 10.0
     severity_filter: Optional[list[str]] = None
+    authorized: bool = False
 
 
 # ── WebSocket manager ──────────────────────────────────
@@ -102,6 +103,9 @@ async def health():
 
 @app.post("/api/scan/start")
 async def start_scan(req: ScanRequest):
+    if not req.authorized:
+        raise HTTPException(400, "You must confirm authorization to scan this target.")
+
     scan_id = str(uuid.uuid4())[:8]
 
     active_scans[scan_id] = {
@@ -135,7 +139,7 @@ async def _run_scan(scan_id: str, req: ScanRequest):
             config = load_config()
             config["rate_limiting"]["default_rps"] = req.rps
 
-        scanner = BugScanner(config=config)
+        scanner = GreyLanceScanner(config=config)
         result = await scanner.scan(
             target=req.url,
             modes=[req.mode],
