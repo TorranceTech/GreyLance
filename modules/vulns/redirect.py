@@ -22,7 +22,7 @@ REDIRECT_PAYLOADS = [
     "//evil.com",
     "//evil.com/%2f..",
     r"\/evil.com",
-    "/\evil.com",
+    r"/\evil.com",
     "https:evil.com",
     "http://evil.com",
     "//evil%2ecom",
