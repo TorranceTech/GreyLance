@@ -14,7 +14,7 @@ from rich import box
 
 from core.rate_limiter import AdaptiveRateLimiter
 from core.http_client import HttpClient
-from core.models import ScanResult, Severity
+from core.models import ScanResult
 from core.waf_detector import WAFDetector
 from core.validator import FalsePositiveValidator
 
@@ -213,7 +213,7 @@ class GreyLanceScanner:
         ) as http:
 
             # ── WAF Detection ─────────────────────────────
-            waf_info = await self._apply_waf_evasion(http, base_url)
+            await self._apply_waf_evasion(http, base_url)
 
             # ── RECON ─────────────────────────────────────
             if "recon" in modes:

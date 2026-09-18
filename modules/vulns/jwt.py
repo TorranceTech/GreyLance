@@ -298,6 +298,6 @@ class JWTScanner:
                     cwe_id="CWE-347",
                     references=["https://portswigger.net/web-security/jwt"],
                 ))
-                console.print(f"  🔴 [bold red]JWT alg:none:[/bold red] bypass possible")
+                console.print("  🔴 [bold red]JWT alg:none:[/bold red] bypass possible")
 
         return vulns

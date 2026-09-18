@@ -10,8 +10,7 @@ Business Logic & Authenticated Scan Checks
 
 import asyncio
 import json
-import re
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urljoin
 from rich.console import Console
 from core.models import Vulnerability, Severity
 
@@ -327,9 +326,9 @@ class BusinessLogicScanner:
                     cvss_score=8.0,
                     title=f"Password Reset — Potential Host Header Injection — {path}",
                     description=(
-                        f"If the password reset endpoint builds the reset link from "
-                        f"the Host header, an attacker can redirect the "
-                        f"reset token to their own domain."
+                        "If the password reset endpoint builds the reset link from "
+                        "the Host header, an attacker can redirect the "
+                        "reset token to their own domain."
                     ),
                     evidence=(
                         f"POST {url}\n"

@@ -156,8 +156,10 @@ async def main():
 
     reporter = Reporter()
     paths = await reporter.save_all(result)
-    print(f"\nReport ready:")
+    print("\nReport ready:")
     print(f"HTML: {paths['html']}")
     print(f"JSON: {paths['json']}")
 
-asyncio.run(main())
+
+if __name__ == "__main__":
+    asyncio.run(main())

@@ -135,7 +135,7 @@ class PortScanner:
             TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
             console=console,
         ) as progress:
-            task = progress.add_task(f"[cyan]Port scan...[/cyan]", total=len(ports))
+            task = progress.add_task("[cyan]Port scan...[/cyan]", total=len(ports))
 
             async def scan_with_progress(port):
                 result = await self._scan_port(ip, port, semaphore)

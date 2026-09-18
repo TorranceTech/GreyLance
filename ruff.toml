@@ -1,0 +1,9 @@
+line-length = 100
+
+[lint]
+# E402: many modules put a module docstring after a leading
+# `from typing import Optional`, which technically makes every later
+# import "not at top of file". That's a pre-existing style quirk across
+# the codebase, not a per-file bug, so it's ignored globally rather than
+# rewriting every file's import order.
+ignore = ["E402"]

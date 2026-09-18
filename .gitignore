@@ -26,6 +26,7 @@ Thumbs.db
 
 # Reports / generated files — generated scan outputs
 reports/*.json
+reports/*.html
 reports/*.html.bak
 output/
 !reports/template.html

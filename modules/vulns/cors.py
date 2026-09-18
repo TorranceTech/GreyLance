@@ -62,7 +62,6 @@ class CORSScanner:
         response = await self.http_client.get(url)
         if response:
             acao = response.headers.get("access-control-allow-origin", "")
-            acac = response.headers.get("access-control-allow-credentials", "")
 
             if acao == "*":
                 vulns.append(Vulnerability(
@@ -75,7 +74,7 @@ class CORSScanner:
                         "Access-Control-Allow-Origin: * is set. "
                         "Any site can make a cross-origin request to this endpoint."
                     ),
-                    evidence=f"Access-Control-Allow-Origin: *",
+                    evidence="Access-Control-Allow-Origin: *",
                     exploitation=(
                         "If there's a sensitive data endpoint:\n"
                         "fetch('https://target.com/api/data')\n"

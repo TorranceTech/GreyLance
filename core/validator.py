@@ -5,9 +5,8 @@ Verifies each finding a second time to eliminate false positives.
 
 import asyncio
 import time
-import re
 from rich.console import Console
-from core.models import Vulnerability, Severity
+from core.models import Vulnerability
 
 console = Console()
 
@@ -40,9 +39,8 @@ class FalsePositiveValidator:
             return True
 
         # Extract the base URL (without the payload)
-        from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+        from urllib.parse import urlparse, urlunparse
         parsed = urlparse(vuln.url)
-        params = parse_qs(parsed.query)
 
         base_url = urlunparse(parsed._replace(query=""))
 

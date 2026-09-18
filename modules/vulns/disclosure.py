@@ -126,10 +126,10 @@ class DisclosureScanner:
                         f"curl {url} | grep -oE '{pattern[:40]}...'"
                     ),
                     remediation=(
-                        f"1. Revoke this credential immediately\n"
-                        f"2. Remove .env file from public directory\n"
-                        f"3. Add sensitive files to .gitignore\n"
-                        f"4. Use a secret management tool (HashiCorp Vault, AWS Secrets Manager)"
+                        "1. Revoke this credential immediately\n"
+                        "2. Remove .env file from public directory\n"
+                        "3. Add sensitive files to .gitignore\n"
+                        "4. Use a secret management tool (HashiCorp Vault, AWS Secrets Manager)"
                     ),
                     cwe_id="CWE-200",
                     references=[

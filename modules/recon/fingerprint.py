@@ -7,8 +7,6 @@ Technology Fingerprinting
 """
 
 import re
-from typing import Optional
-import httpx
 from rich.console import Console
 from core.models import Vulnerability, Severity
 

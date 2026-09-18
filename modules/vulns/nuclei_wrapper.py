@@ -5,7 +5,6 @@ Nuclei Wrapper — run the Nuclei scan and parse the results
 import asyncio
 import json
 import shutil
-from pathlib import Path
 from rich.console import Console
 from core.models import Vulnerability, Severity
 

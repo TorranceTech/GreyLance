@@ -6,7 +6,7 @@ Passiv detection: callback domain + internal IP patterns
 
 import asyncio
 import re
-from urllib.parse import urlparse, parse_qs, urlencode, urlunparse, quote
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 from rich.console import Console
 from core.models import Vulnerability, Severity
 
@@ -113,9 +113,6 @@ class SSRFScanner:
             response = await self.http_client.get(test_url)
             if not response:
                 continue
-
-            # Internal request responds quickly
-            is_fast = True  # Simplified — real implementation needs a timer
 
             indicator = self._check_internal_response(response.text)
 

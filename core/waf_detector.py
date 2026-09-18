@@ -2,9 +2,7 @@
 WAF Detection + Evasion Engine
 """
 
-import asyncio
 import random
-import re
 from rich.console import Console
 
 console = Console()

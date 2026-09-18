@@ -199,7 +199,7 @@ class DiscoveryScanner:
                         f"/{f['path']} endpoint returns 403. "
                         f"Bypass may be possible via header manipulation."
                     ),
-                    evidence=f"HTTP 403",
+                    evidence="HTTP 403",
                     exploitation=(
                         f"Header bypass attempts:\n"
                         f"curl -H 'X-Original-URL: /{f['path']}' {base_url}/\n"

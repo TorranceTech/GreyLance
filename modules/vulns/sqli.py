@@ -6,7 +6,6 @@ SQL Injection Scanner
 - Boolean-based hints
 """
 
-import asyncio
 import time
 import re
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
@@ -141,7 +140,7 @@ class SQLiScanner:
         for payload, expected_delay, db_type in TIME_PAYLOADS:
             test_url = self._inject(url, param, payload)
             t0 = time.monotonic()
-            response = await self.http_client.get(test_url)
+            await self.http_client.get(test_url)
             elapsed = time.monotonic() - t0
 
             if elapsed >= (expected_delay * 0.8) and elapsed > baseline + 2:
