@@ -32,6 +32,7 @@ from modules.vulns.jwt import JWTScanner
 from modules.vulns.idor import IDORScanner
 from modules.vulns.nuclei_wrapper import NucleiWrapper
 from modules.vulns.business_logic import BusinessLogicScanner
+from modules.vulns.tls_audit import TLSAuditor
 
 console = Console()
 
@@ -279,6 +280,14 @@ class GreyLanceScanner:
                 )
                 result.vulnerabilities.extend(
                     await cors.scan(base_url)
+                )
+
+                console.print(
+                    "\n[bold cyan]🔒 TLS/SSL Audit...[/bold cyan]"
+                )
+                tls_auditor = TLSAuditor(http)
+                result.vulnerabilities.extend(
+                    await tls_auditor.scan(base_url)
                 )
 
                 console.print(

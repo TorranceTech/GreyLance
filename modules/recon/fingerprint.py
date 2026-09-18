@@ -156,6 +156,13 @@ class TechFingerprinter:
                 "cvss": 2.0,
                 "remediation": "Add Permissions-Policy header",
             },
+            "referrer-policy": {
+                "title": "Missing Referrer-Policy",
+                "desc": "No Referrer-Policy header. The full URL (including sensitive query "
+                        "parameters) may leak to third parties via the Referer header.",
+                "cvss": 2.0,
+                "remediation": "Add header: Referrer-Policy: strict-origin-when-cross-origin",
+            },
         }
 
         for header, info in security_headers.items():
@@ -196,6 +203,60 @@ class TechFingerprinter:
 
         return vulns
 
+    def _check_cookie_flags(self, set_cookie_headers: list[str], url: str) -> list[Vulnerability]:
+        """Check Set-Cookie headers for missing Secure/HttpOnly/SameSite attributes"""
+        vulns = []
+        if not set_cookie_headers:
+            return vulns
+
+        missing_secure = any("secure" not in c.lower() for c in set_cookie_headers)
+        missing_httponly = any("httponly" not in c.lower() for c in set_cookie_headers)
+        missing_samesite = any("samesite" not in c.lower() for c in set_cookie_headers)
+
+        if missing_secure and url.lower().startswith("https"):
+            vulns.append(Vulnerability(
+                vuln_type="Missing Security Header",
+                url=url,
+                severity=Severity.MEDIUM,
+                cvss_score=4.3,
+                title="Cookie Missing Secure Flag",
+                description="One or more Set-Cookie headers are missing the Secure attribute, "
+                            "so the cookie may be sent over unencrypted HTTP.",
+                evidence="Set-Cookie header(s) without 'Secure' attribute",
+                exploitation="A network attacker (e.g. on public Wi-Fi) can intercept the cookie if the browser ever sends it over plain HTTP.",
+                remediation="Set the Secure attribute on all session/auth cookies.",
+                cwe_id="CWE-614",
+            ))
+        if missing_httponly:
+            vulns.append(Vulnerability(
+                vuln_type="Missing Security Header",
+                url=url,
+                severity=Severity.MEDIUM,
+                cvss_score=4.3,
+                title="Cookie Missing HttpOnly Flag",
+                description="One or more Set-Cookie headers are missing the HttpOnly attribute, "
+                            "so client-side JavaScript can read the cookie.",
+                evidence="Set-Cookie header(s) without 'HttpOnly' attribute",
+                exploitation="An XSS vulnerability elsewhere on the site can be used to steal this cookie via document.cookie.",
+                remediation="Set the HttpOnly attribute on all session/auth cookies.",
+                cwe_id="CWE-1004",
+            ))
+        if missing_samesite:
+            vulns.append(Vulnerability(
+                vuln_type="Missing Security Header",
+                url=url,
+                severity=Severity.MEDIUM,
+                cvss_score=4.3,
+                title="Cookie Missing SameSite Attribute",
+                description="One or more Set-Cookie headers are missing the SameSite attribute, "
+                            "weakening CSRF defenses.",
+                evidence="Set-Cookie header(s) without 'SameSite' attribute",
+                exploitation="Cookies are sent on cross-site requests, which can enable CSRF attacks against authenticated endpoints.",
+                remediation="Set SameSite=Lax (or Strict where possible) on all session/auth cookies.",
+                cwe_id="CWE-352",
+            ))
+        return vulns
+
     async def fingerprint(self, url: str) -> tuple[list[str], list[Vulnerability]]:
         """Fingerprint the URL, return technologies and header vulnerabilities"""
         response = await self.http_client.get(url)
@@ -209,6 +270,7 @@ class TechFingerprinter:
         techs = list(set(techs))
 
         vulns = self._check_security_headers(dict(response.headers), url)
+        vulns.extend(self._check_cookie_flags(response.headers.get_list("set-cookie"), url))
 
         if techs:
             console.print(f"  [bold]Technologies:[/bold] {', '.join(techs)}")
