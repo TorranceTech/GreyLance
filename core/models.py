@@ -49,6 +49,35 @@ class Severity(Enum):
         return emojis[self.value]
 
 
+OWASP_TOP10_2021 = {
+    "XSS": "A03:2021 – Injection",
+    "SQL Injection": "A03:2021 – Injection",
+    "CORS Misconfiguration": "A05:2021 – Security Misconfiguration",
+    "SSRF": "A10:2021 – Server-Side Request Forgery",
+    "Open Redirect": "A01:2021 – Broken Access Control",
+    "JWT Security": "A07:2021 – Identification and Authentication Failures",
+    "IDOR": "A01:2021 – Broken Access Control",
+    "Access Control": "A01:2021 – Broken Access Control",
+    "Exposed Admin Panel": "A01:2021 – Broken Access Control",
+    "Information Disclosure": "A05:2021 – Security Misconfiguration",
+    "Missing Security Header": "A05:2021 – Security Misconfiguration",
+    "Business Logic": "A01:2021 – Broken Access Control",
+    "TLS/SSL Misconfiguration": "A02:2021 – Cryptographic Failures",
+}
+_DEFAULT_OWASP_CATEGORY = "A05:2021 – Security Misconfiguration"
+
+
+def owasp_category_for(vuln_type: str) -> str:
+    """Best-effort mapping from an internal vuln_type to an OWASP Top 10 (2021) category.
+
+    This is a heuristic, not an authoritative classification — some vuln_types
+    (e.g. "Business Logic") span multiple OWASP categories in reality.
+    """
+    if vuln_type.startswith("Nuclei:"):
+        return "A06:2021 – Vulnerable and Outdated Components"
+    return OWASP_TOP10_2021.get(vuln_type, _DEFAULT_OWASP_CATEGORY)
+
+
 def calculate_severity(cvss_score: float) -> Severity:
     if cvss_score >= 9.0:
         return Severity.CRITICAL
@@ -81,6 +110,10 @@ class Vulnerability:
     references: list[str] = field(default_factory=list)
     timestamp: datetime = field(default_factory=datetime.now)
 
+    @property
+    def owasp_category(self) -> str:
+        return owasp_category_for(self.vuln_type)
+
     def to_dict(self) -> dict:
         return {
             "vuln_type": self.vuln_type,
@@ -97,6 +130,7 @@ class Vulnerability:
             "payload_used": self.payload_used,
             "curl_poc": self.curl_poc,
             "cwe_id": self.cwe_id,
+            "owasp_category": self.owasp_category,
             "references": self.references,
             "timestamp": self.timestamp.isoformat(),
         }

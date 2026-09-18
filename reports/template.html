@@ -130,6 +130,7 @@
         <small style="color:#8b949e; font-weight:normal;">— CVSS {{ v.cvss_score }}</small>
       </h3>
       <div class="url">🔗 {{ v.url }}</div>
+      <div class="url">🏷️ {{ v.owasp_category }}{% if v.cwe_id %} · {{ v.cwe_id }}{% endif %}</div>
       {% if v.parameter %}
       <div class="url">📌 Parameter: <code>{{ v.parameter }}</code> | Method: {{ v.method }}</div>
       {% endif %}

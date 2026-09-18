@@ -54,6 +54,11 @@ function VulnCard({ vuln }) {
           <div style={{ color: '#64748b', fontSize: '0.78rem' }}>
             {vuln.vuln_type} · CVSS {vuln.cvss_score} · {vuln.url?.slice(0, 55)}
           </div>
+          {(vuln.owasp_category || vuln.cwe_id) && (
+            <div style={{ color: '#475569', fontSize: '0.72rem', marginTop: '0.15rem' }}>
+              🏷️ {vuln.owasp_category}{vuln.cwe_id ? ` · ${vuln.cwe_id}` : ''}
+            </div>
+          )}
         </div>
         <span style={{ color: '#475569', fontSize: '1rem' }}>{open ? '▲' : '▼'}</span>
       </div>
