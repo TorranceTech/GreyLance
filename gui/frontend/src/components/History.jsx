@@ -22,11 +22,11 @@ export default function History({ onSelect }) {
   return (
     <div>
       <h2 style={{ marginBottom: '1.5rem', color: '#94a3b8' }}>
-        Scan Tarixi
+        Scan History
       </h2>
       {scans.length === 0 ? (
         <div style={{ textAlign: 'center', color: '#475569', padding: '4rem' }}>
-          Hələ heç bir scan yoxdur
+          No scans yet
         </div>
       ) : (
         scans.map(scan => (

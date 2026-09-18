@@ -40,7 +40,7 @@ export default function Scanner({ onScanStart }) {
 
   const handleScan = async () => {
     if (!form.url.trim()) {
-      setError('URL daxil et')
+      setError('Enter a URL')
       return
     }
     setError(null)
@@ -55,7 +55,7 @@ export default function Scanner({ onScanStart }) {
       const data = await res.json()
       onScanStart(data.scan_id)
     } catch (e) {
-      setError('Server ilə əlaqə qurulmadı. Backend işləyirmi?')
+      setError('Could not connect to the server. Is the backend running?')
     } finally {
       setLoading(false)
     }
@@ -70,12 +70,12 @@ export default function Scanner({ onScanStart }) {
         padding: '2rem',
       }}>
         <h2 style={{ marginBottom: '1.5rem', color: '#e2e8f0' }}>
-          Yeni Scan
+          New Scan
         </h2>
 
         {/* URL */}
         <div style={{ marginBottom: '1.2rem' }}>
-          <label style={labelStyle}>Hədəf URL</label>
+          <label style={labelStyle}>Target URL</label>
           <input
             style={inputStyle}
             placeholder="https://target.com"
@@ -88,12 +88,12 @@ export default function Scanner({ onScanStart }) {
         {/* Mode + Port */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.2rem' }}>
           <div>
-            <label style={labelStyle}>Scan Modu</label>
+            <label style={labelStyle}>Scan Mode</label>
             <select style={selectStyle} value={form.mode}
               onChange={e => update('mode', e.target.value)}>
-              <option value="all">Tam (All)</option>
-              <option value="recon">Yalnız Recon</option>
-              <option value="vulns">Yalnız Vulns</option>
+              <option value="all">Full (All)</option>
+              <option value="recon">Recon Only</option>
+              <option value="vulns">Vulns Only</option>
             </select>
           </div>
           <div>
@@ -122,8 +122,8 @@ export default function Scanner({ onScanStart }) {
             display: 'flex', justifyContent: 'space-between',
             fontSize: '0.75rem', color: '#475569', marginTop: '0.3rem'
           }}>
-            <span>1 (yavaş)</span>
-            <span>50 (sürətli)</span>
+            <span>1 (slow)</span>
+            <span>50 (fast)</span>
           </div>
         </div>
 
@@ -137,7 +137,7 @@ export default function Scanner({ onScanStart }) {
             style={{ accentColor: '#38bdf8', width: 16, height: 16 }}
           />
           <label htmlFor="skip_sub" style={{ color: '#94a3b8', fontSize: '0.9rem' }}>
-            Subdomain scan-ı atla
+            Skip subdomain scan
           </label>
         </div>
 
@@ -167,7 +167,7 @@ export default function Scanner({ onScanStart }) {
             transition: 'all 0.2s',
           }}
         >
-          {loading ? '⏳ Başladılır...' : '🚀 Scan Başlat'}
+          {loading ? '⏳ Starting...' : '🚀 Start Scan'}
         </button>
       </div>
     </div>

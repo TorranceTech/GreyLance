@@ -27,7 +27,7 @@ class TokenBucket:
         async with self.lock:
             now = time.monotonic()
             elapsed = now - self.last_refill
-            # Token əlavə et
+            # Add tokens
             self.tokens = min(self.rps, self.tokens + elapsed * self.rps)
             self.last_refill = now
 
@@ -35,7 +35,7 @@ class TokenBucket:
                 self.tokens -= 1
                 return
             else:
-                # Token olmadıqda gözlə
+                # Wait when there are no tokens left
                 wait = (1 - self.tokens) / self.rps
                 await asyncio.sleep(wait)
                 self.tokens = 0
@@ -44,9 +44,9 @@ class TokenBucket:
 class AdaptiveRateLimiter:
     """
     Separate token bucket for each domain.
-    429 → RPS yarıya endir
-    503 → 30s pauza
-    Success streak → RPS artır
+    429 → halve the RPS
+    503 → 30s pause
+    Success streak → increase the RPS
     """
 
     def __init__(self, default_rps: float = 10.0, min_rps: float = 1.0,
@@ -69,11 +69,11 @@ class AdaptiveRateLimiter:
 
     async def acquire(self, domain: str):
         """Call before sending request"""
-        # Pause yoxla
+        # Check pause
         if domain in self._paused_until:
             remaining = self._paused_until[domain] - time.monotonic()
             if remaining > 0:
-                console.print(f"[yellow]⏸  {domain} — {remaining:.0f}s gözlənilir (503)[/yellow]")
+                console.print(f"[yellow]⏸  {domain} — waiting {remaining:.0f}s (503)[/yellow]")
                 await asyncio.sleep(remaining)
             else:
                 del self._paused_until[domain]
@@ -91,13 +91,13 @@ class AdaptiveRateLimiter:
             self._success_streak[domain] = 0
 
         elif status_code == 503:
-            console.print(f"[red]🛑 503 — {domain} {self.pause_on_503}s pauzaya alındı[/red]")
+            console.print(f"[red]🛑 503 — {domain} paused for {self.pause_on_503}s[/red]")
             self._paused_until[domain] = time.monotonic() + self.pause_on_503
             self._success_streak[domain] = 0
 
         elif status_code < 400:
             self._success_streak[domain] += 1
-            # 20 uğurlu requestdən sonra RPS artır
+            # Increase RPS after 20 successful requests
             if self._success_streak[domain] % 20 == 0:
                 new_rps = min(self.max_rps, bucket.rps * 1.2)
                 if new_rps > bucket.rps:

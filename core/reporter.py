@@ -1,6 +1,6 @@
 from typing import Optional
 """
-Reporter — JSON və HTML report generasiyası
+Reporter — JSON and HTML report generation
 """
 
 import json
@@ -28,14 +28,14 @@ def format_dt(dt) -> str:
 
 
 def safe_text(value) -> Markup:
-    """HTML escape et amma newline-ları <br>-ə çevir"""
+    """HTML escape, but turn newlines into <br>"""
     if value is None:
         return Markup("")
     return Markup(str(escape(str(value))).replace('\n', '<br>'))
 
 
 def safe_code(value) -> Markup:
-    """Kod blokları üçün — escape et, newline saxla"""
+    """For code blocks — escape, keep newlines"""
     if value is None:
         return Markup("")
     return Markup(str(escape(str(value))))
@@ -74,17 +74,17 @@ class Reporter:
         return path
 
     async def save_html(self, result: ScanResult) -> Optional[Path ]:
-        # BUG FIX 2: template tapılmasa proqram çökmür,
-        # xəbərdarlıq verib None qaytarır.
+        # BUG FIX 2: if the template isn't found, the program doesn't crash,
+        # it warns and returns None instead.
         base = self._filename_base(result.target)
         path = self.output_dir / f"{base}.html"
         try:
             template = self.jinja.get_template("template.html")
         except TemplateNotFound:
             console.print(
-                "[yellow]⚠ HTML template tapılmadı "
+                "[yellow]⚠ HTML template not found "
                 f"({TEMPLATE_DIR / 'template.html'}). "
-                "HTML report atlanır.[/yellow]"
+                "Skipping HTML report.[/yellow]"
             )
             return None
         html = template.render(result=result, format_dt=format_dt)

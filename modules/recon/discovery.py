@@ -55,7 +55,7 @@ COMMON_PATHS = [
     "images", "assets", "static",
 ]
 
-# Spring Boot actuator endpoints — ayrıca siyahı
+# Spring Boot actuator endpoints — separate list
 ACTUATOR_PATHS = [
     "actuator", "actuator/env", "actuator/health",
     "actuator/info", "actuator/mappings", "actuator/beans",
@@ -90,7 +90,7 @@ class DiscoveryScanner:
         }
 
     def _analyze_findings(self, findings: list[dict], base_url: str) -> list[Vulnerability]:
-        """Tapılan endpoint-ləri analiz et, vuln yarat"""
+        """Analyze the found endpoints, create vulnerabilities"""
         vulns = []
 
         for f in findings:
@@ -113,7 +113,7 @@ class DiscoveryScanner:
                         ),
                         evidence=f"HTTP {status}, Size: {f['size']} bytes",
                         exploitation=(
-                            f"Hydra ilə brute force:\n"
+                            f"Brute force with Hydra:\n"
                             f"hydra -l admin -P /usr/share/wordlists/rockyou.txt "
                             f"{base_url} http-post-form "
                             f"'/admin/login:user=^USER^&pass=^PASS^:Invalid'"
@@ -187,7 +187,7 @@ class DiscoveryScanner:
                     cwe_id="CWE-200",
                 ))
 
-            # 403 Forbidden — potensial bypass
+            # 403 Forbidden — bypass may be possible
             if status == 403:
                 vulns.append(Vulnerability(
                     vuln_type="Access Control",

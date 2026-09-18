@@ -33,7 +33,7 @@ def print_banner():
 
 
 def parse_cookies(cookie_list: tuple) -> dict:
-    """'name=value' Create a dict from format"""
+    """Create a dict from 'name=value' format"""
     result = {}
     for c in cookie_list:
         c = c.strip()
@@ -49,7 +49,7 @@ def parse_cookies(cookie_list: tuple) -> dict:
 
 
 def parse_headers(header_list: tuple) -> dict:
-    """'Name: Value' Create a dict from format"""
+    """Create a dict from 'Name: Value' format"""
     result = {}
     for h in header_list:
         h = h.strip()
@@ -83,7 +83,7 @@ def cli():
     "--ports", "-p",
     type=click.Choice(["common", "extended", "full"]),
     default="common",
-    help="Port scan depth(default: common)",
+    help="Port scan depth (default: common)",
     show_default=True,
 )
 @click.option(
@@ -155,7 +155,7 @@ def scan(
 
     \b
     Samples:
-      # Sadə scan
+      # Simple scan
       python cli.py scan https://target.com
 
       # Authenticated scan
@@ -163,7 +163,7 @@ def scan(
         --cookie "session=abc123" \\
         --cookie "csrf=xyz789"
 
-      # Bearer token ilə
+      # With a Bearer token
       python cli.py scan https://target.com \\
         --header "Authorization: Bearer eyJ..."
 
@@ -173,13 +173,13 @@ def scan(
         --proxy http://127.0.0.1:8080 \\
         --business-logic
 
-      # Quick scan — FP send validation
+      # Quick scan — skip FP validation
       python cli.py scan https://target.com \\
         --no-subdomains \\
         --no-fp-validation \\
         --rps 20
 
-      # WAF olan hədəf — Slow, cautious
+      # Target behind a WAF — slow, cautious
       python cli.py scan https://target.com \\
         --rps 3 \\
         --no-subdomains \\
@@ -204,7 +204,7 @@ def scan(
     if proxy:
         console.print(f"[green]🔀 Proxy:[/green] {proxy}")
     if business_logic:
-        console.print("[green]🧠 Business Logic:[/green] aktiv")
+        console.print("[green]🧠 Business Logic:[/green] active")
 
     # Configure settings
     config = None
@@ -260,7 +260,7 @@ def scan(
 @click.option("--output", "-o", default="./reports")
 def recon(url, ports, no_subdomains, output):
     """
-    Alone recon — subdomain + port + fingerprint + discovery.
+    Recon only — subdomain + port + fingerprint + discovery.
 
     \b
     Sample:
@@ -345,8 +345,8 @@ def bizlogic(url, cookie, header, proxy, output):
     if not parsed_cookies and not parsed_headers:
         console.print(
             "[yellow]⚠️  Notification:[/yellow] "
-            "Business logic scan authenticated without "
-            "Limited results are produced. --cookie Using with et."
+            "Running a business logic scan without authentication "
+            "produces limited results. Use it together with --cookie."
         )
 
     async def run():

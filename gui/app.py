@@ -1,5 +1,5 @@
 """
-FastAPI Backend — WebSocket ilə real-time scan progress
+FastAPI Backend — real-time scan progress via WebSocket
 """
 
 import asyncio
@@ -30,11 +30,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Aktiv scan-lar
+# Active scans
 active_scans: dict[str, dict] = {}
 
 
-# ── Request modelləri ──────────────────────────────────
+# ── Request models ──────────────────────────────────
 class ScanRequest(BaseModel):
     url: str
     mode: str = "all"
@@ -68,16 +68,16 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 
-# ── Rich console-u WebSocket-ə yönləndir ──────────────
+# ── Redirect the Rich console to WebSocket ──────────────
 class WSConsole:
-    """Rich console əvəzinə — mesajları WS-ə göndər"""
+    """Instead of the Rich console — send messages to the WS"""
     def __init__(self, scan_id: str, loop: asyncio.AbstractEventLoop):
         self.scan_id = scan_id
         self.loop = loop
         self._buffer = []
 
     def print(self, *args, **kwargs):
-        # Rich markup-ı sil
+        # Strip Rich markup
         import re
         text = " ".join(str(a) for a in args)
         text = re.sub(r'\[/?[^\]]+\]', '', text)
@@ -113,7 +113,7 @@ async def start_scan(req: ScanRequest):
         "error": None,
     }
 
-    # Background-da scan başlat
+    # Start the scan in the background
     asyncio.create_task(_run_scan(scan_id, req))
 
     return {"scan_id": scan_id, "status": "queued"}
@@ -125,7 +125,7 @@ async def _run_scan(scan_id: str, req: ScanRequest):
     await manager.send(scan_id, {
         "type": "status",
         "status": "running",
-        "message": f"Scan başladı: {req.url}",
+        "message": f"Scan started: {req.url}",
     })
 
     try:
@@ -143,7 +143,7 @@ async def _run_scan(scan_id: str, req: ScanRequest):
             skip_subdomains=req.skip_subdomains,
         )
 
-        # Report saxla
+        # Save the report
         reporter = Reporter()
         paths = await reporter.save_all(result)
 
@@ -176,7 +176,7 @@ async def _run_scan(scan_id: str, req: ScanRequest):
 async def get_scan(scan_id: str):
     scan = active_scans.get(scan_id)
     if not scan:
-        raise HTTPException(404, "Scan tapılmadı")
+        raise HTTPException(404, "Scan not found")
     return scan
 
 
@@ -195,7 +195,7 @@ async def delete_scan(scan_id: str):
 async def websocket_endpoint(scan_id: str, ws: WebSocket):
     await manager.connect(scan_id, ws)
     try:
-        # Əgər scan artıq qurtarıbsa — nəticəni dərhal göndər
+        # If the scan has already finished — send the result immediately
         scan = active_scans.get(scan_id)
         if scan and scan["status"] == "completed":
             await ws.send_text(json.dumps({
@@ -216,7 +216,7 @@ if static_dir.exists():
 else:
     @app.get("/")
     async def root():
-        return JSONResponse({"message": "Frontend build yoxdur. npm run build edin."})
+        return JSONResponse({"message": "Frontend build not found. Run npm run build."})
 
 
 if __name__ == "__main__":

@@ -16,7 +16,7 @@ from core.models import SubdomainInfo
 
 console = Console()
 
-# Əsas subdomain wordlist
+# Main subdomain wordlist
 COMMON_SUBDOMAINS = [
     "www", "mail", "ftp", "localhost", "webmail", "smtp", "pop", "ns1", "ns2",
     "webdisk", "ns", "cpanel", "whm", "autodiscover", "autoconfig", "m", "imap",

@@ -48,17 +48,17 @@ class JWTScanner:
 
     def _extract_jwts(self, response_text: str, headers: dict) -> list[str]:
         tokens = []
-        # Header-lərdən
+        # From headers
         auth = headers.get("authorization", "")
         if auth.startswith("Bearer "):
             tokens.append(auth[7:])
 
-        # Response body-dən
+        # From response body
         jwt_pattern = r'eyJ[a-zA-Z0-9_\-]+\.eyJ[a-zA-Z0-9_\-]+\.[a-zA-Z0-9_\-]*'
         found = re.findall(jwt_pattern, response_text)
         tokens.extend(found)
 
-        # Cookie-lərdən
+        # From cookies
         cookie_header = headers.get("set-cookie", "")
         found_cookies = re.findall(jwt_pattern, cookie_header)
         tokens.extend(found_cookies)
@@ -66,7 +66,7 @@ class JWTScanner:
         return list(set(tokens))
 
     def _test_alg_none(self, token: str) -> Optional[str ]:
-        """alg:none bypass cəhdi — token yarat"""
+        """alg:none bypass attempt — create the token"""
         parts = token.split(".")
         if len(parts) != 3:
             return None
@@ -84,9 +84,9 @@ class JWTScanner:
         if "is_admin" in payload:
             payload["is_admin"] = True
         if "sub" in payload:
-            pass  # sub-u saxla
+            pass  # keep sub as-is
 
-        # alg: none ilə yeni token
+        # New token with alg: none
         for alg_variant in ["none", "None", "NONE", "nOnE"]:
             header["alg"] = alg_variant
             new_header = self._encode_part(header)
@@ -97,7 +97,7 @@ class JWTScanner:
         return None
 
     def _test_weak_secret(self, token: str) -> Optional[str ]:
-        """Zəif secret ilə signature verify cəhdi"""
+        """Attempt to verify the signature with a weak secret"""
         parts = token.split(".")
         if len(parts) != 3:
             return None
@@ -128,7 +128,7 @@ class JWTScanner:
         return None
 
     def _analyze_payload(self, token: str, url: str) -> list[Vulnerability]:
-        """Payload məzmununu analiz et"""
+        """Analyze the payload contents"""
         vulns = []
         parts = token.split(".")
         if len(parts) != 3:
@@ -140,7 +140,7 @@ class JWTScanner:
         if not header or not payload:
             return vulns
 
-        # Sensitive data yoxla
+        # Check for sensitive data
         sensitive_keys = ["password", "passwd", "secret", "api_key",
                           "ssn", "credit_card", "cvv", "private"]
         found_sensitive = [k for k in payload if k.lower() in sensitive_keys]
@@ -169,7 +169,7 @@ class JWTScanner:
                 cwe_id="CWE-522",
             ))
 
-        # exp yoxlanması
+        # exp check
         if "exp" not in payload:
             vulns.append(Vulnerability(
                 vuln_type="JWT Security",
@@ -233,7 +233,7 @@ class JWTScanner:
         console.print(f"  [dim]  {len(tokens)} JWTs found[/dim]")
 
         for token in tokens:
-            # 1. Payload analizi
+            # 1. Payload analysis
             payload_vulns = self._analyze_payload(token, url)
             vulns.extend(payload_vulns)
 
@@ -271,6 +271,7 @@ class JWTScanner:
 
             # 3. alg:none
             forged = self._test_alg_none(token)
+
             if forged:
                 vulns.append(Vulnerability(
                     vuln_type="JWT Security",

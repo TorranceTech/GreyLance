@@ -1,5 +1,5 @@
 """
-Nuclei Wrapper — Nuclei scan-ı run et və nəticələri parse et
+Nuclei Wrapper — run the Nuclei scan and parse the results
 """
 
 import asyncio
@@ -37,7 +37,7 @@ class NucleiWrapper:
     async def update_templates(self):
         if not self.available:
             return
-        console.print("[dim]Nuclei templates yenilənir...[/dim]")
+        console.print("[dim]Updating Nuclei templates...[/dim]")
         await self._run([self.nuclei_path, "-update-templates", "-silent"])
 
     def _parse_jsonl(self, output: str) -> list[Vulnerability]:
@@ -57,15 +57,15 @@ class NucleiWrapper:
             matched_at = data.get("matched-at", data.get("host", ""))
             template_id = data.get("template-id", "unknown")
             name = info.get("name", template_id)
-            description = info.get("description", "Nuclei template tapıntısı")
-            remediation = info.get("remediation", "Nuclei template-ə bax")
+            description = info.get("description", "Nuclei template finding")
+            remediation = info.get("remediation", "See the Nuclei template")
 
             # References
             refs = info.get("reference", [])
             if isinstance(refs, str):
                 refs = [refs]
 
-            # Exploitation — tags-dən hint
+            # Exploitation — hint from tags
             tags = info.get("tags", [])
             tags_str = ", ".join(tags) if isinstance(tags, list) else str(tags)
 
@@ -82,7 +82,7 @@ class NucleiWrapper:
                     f"Matched: {matched_at}"
                 ),
                 exploitation=(
-                    f"Nuclei template-i manual run et:\n"
+                    f"Run the Nuclei template manually:\n"
                     f"nuclei -u {matched_at} -t {template_id} -v"
                 ),
                 remediation=remediation,
@@ -103,7 +103,7 @@ class NucleiWrapper:
     ) -> list[Vulnerability]:
 
         if not self.available:
-            console.print("[yellow]⚠️  Nuclei tapılmadı — skip edilir[/yellow]")
+            console.print("[yellow]⚠️  Nuclei not found — skipping[/yellow]")
             console.print("[dim]  Install: https://github.com/projectdiscovery/nuclei[/dim]")
             return []
 
@@ -131,7 +131,7 @@ class NucleiWrapper:
             return []
 
         vulns = self._parse_jsonl(stdout)
-        console.print(f"[bold green]  Nuclei: {len(vulns)} tapıntı[/bold green]")
+        console.print(f"[bold green]  Nuclei: {len(vulns)} findings[/bold green]")
 
         for v in vulns:
             console.print(

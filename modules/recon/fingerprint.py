@@ -1,7 +1,7 @@
 """
 Technology Fingerprinting
-- HTTP headers analizi
-- HTML content analizi
+- HTTP headers analysis
+- HTML content analysis
 - Cookie patterns
 - JS library detection
 """
@@ -14,7 +14,7 @@ from core.models import Vulnerability, Severity
 
 console = Console()
 
-# Texnologiya imzaları
+# Technology signatures
 TECH_SIGNATURES = {
     # Headers
     "headers": {
@@ -68,17 +68,17 @@ TECH_SIGNATURES = {
     },
 }
 
-# Köhnə/vulnerable versiyalar
+# Old/vulnerable versions
 VULNERABLE_VERSIONS = {
     "PHP": {
-        "< 8.1": "PHP 8.0 və aşağı — EOL, security updates yoxdur",
-        "5.x":   "PHP 5.x — kritik security issues (CVE-2019-11043 etc.)",
+        "< 8.1": "PHP 8.0 and below — EOL, no security updates",
+        "5.x":   "PHP 5.x — critical security issues (CVE-2019-11043 etc.)",
     },
     "Apache": {
         "< 2.4.51": "Apache Path Traversal (CVE-2021-41773/CVE-2021-42013)",
     },
     "nginx": {
-        "< 1.20": "nginx köhnə versiya — buffer overflow issues",
+        "< 1.20": "nginx old version — buffer overflow issues",
     },
 }
 
@@ -92,7 +92,7 @@ class TechFingerprinter:
         for header, patterns in TECH_SIGNATURES["headers"].items():
             value = headers.get(header, "")
             if not value:
-                # Case-insensitive yoxla
+                # Check case-insensitively
                 value = next((v for k, v in headers.items()
                                if k.lower() == header.lower()), "")
             if value:
@@ -121,7 +121,7 @@ class TechFingerprinter:
         return techs
 
     def _check_security_headers(self, headers: dict, url: str) -> list[Vulnerability]:
-        """Missing security headers yoxla"""
+        """Check for missing security headers"""
         vulns = []
         headers_lower = {k.lower(): v for k, v in headers.items()}
 
@@ -197,7 +197,7 @@ class TechFingerprinter:
         return vulns
 
     async def fingerprint(self, url: str) -> tuple[list[str], list[Vulnerability]]:
-        """URL-i fingerprint et, texnologiyaları və header vulnları qaytar"""
+        """Fingerprint the URL, return technologies and header vulnerabilities"""
         response = await self.http_client.get(url)
         if not response:
             return [], []
@@ -211,6 +211,6 @@ class TechFingerprinter:
         vulns = self._check_security_headers(dict(response.headers), url)
 
         if techs:
-            console.print(f"  [bold]Texnologiyalar:[/bold] {', '.join(techs)}")
+            console.print(f"  [bold]Technologies:[/bold] {', '.join(techs)}")
 
         return techs, vulns

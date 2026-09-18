@@ -101,21 +101,21 @@ class SQLiScanner:
                     cvss_score=9.8,
                     title=f"SQL Injection (Error-Based) — {param}",
                     description=(
-                        f"'{param}' parametri SQL injection-a qarşı həssasdır. "
-                        f"Server SQL error mesajı qaytardı."
+                        f"The '{param}' parameter is vulnerable to SQL injection. "
+                        f"The server returned a SQL error message."
                     ),
-                    evidence=f"SQL error pattern tapıldı: '{matched}'",
+                    evidence=f"SQL error pattern found: '{matched}'",
                     exploitation=(
-                        f"SQLMap ilə avtomatik exploit:\n"
+                        f"Automated exploit with SQLMap:\n"
                         f"sqlmap -u \"{url}\" -p {param} --dbs --batch\n\n"
                         f"Manual test:\n"
                         f"curl \"{test_url}\""
                     ),
                     remediation=(
-                        "1. Prepared statements / parameterized queries işlət\n"
-                        "2. ORM istifadə et\n"
-                        "3. Input validation tətbiq et\n"
-                        "4. SQL error mesajlarını production-da gizlət"
+                        "1. Use prepared statements / parameterized queries\n"
+                        "2. Use an ORM\n"
+                        "3. Apply input validation\n"
+                        "4. Hide SQL error messages in production"
                     ),
                     parameter=param,
                     payload_used=payload,
@@ -152,13 +152,13 @@ class SQLiScanner:
                     cvss_score=9.0,
                     title=f"SQL Injection (Time-Based Blind) — {param} [{db_type}]",
                     description=(
-                        f"'{param}' parametri time-based blind SQL injection-a həssasdır. "
-                        f"Database: {db_type} ehtimalı. "
-                        f"Response {elapsed:.1f}s gecikdi (baseline: {baseline:.1f}s)."
+                        f"The '{param}' parameter is vulnerable to time-based blind SQL injection. "
+                        f"Likely database: {db_type}. "
+                        f"The response was delayed by {elapsed:.1f}s (baseline: {baseline:.1f}s)."
                     ),
                     evidence=(
                         f"Payload: {payload}\n"
-                        f"Response time: {elapsed:.2f}s (gözlənilən: {expected_delay}s)\n"
+                        f"Response time: {elapsed:.2f}s (expected: {expected_delay}s)\n"
                         f"Baseline: {baseline:.2f}s"
                     ),
                     exploitation=(
@@ -172,7 +172,7 @@ class SQLiScanner:
                         "1. Parameterized queries / prepared statements\n"
                         "2. Stored procedures\n"
                         "3. Least privilege DB user\n"
-                        "4. WAF tətbiq et"
+                        "4. Apply a WAF"
                     ),
                     parameter=param,
                     payload_used=payload,
@@ -186,16 +186,16 @@ class SQLiScanner:
         if not params:
             return []
 
-        console.print(f"  [dim]SQLi skan: {len(params)} parametr — {url[:60]}[/dim]")
+        console.print(f"  [dim]SQLi scan: {len(params)} parameters — {url[:60]}[/dim]")
         vulns = []
 
         for param in params:
-            # Əvvəl error-based — sürətli
+            # Error-based first — fast
             vuln = await self._test_error_based(url, param)
             if vuln:
                 vulns.append(vuln)
                 console.print(f"  {vuln.severity.emoji} [bold red]SQLi (error-based):[/bold red] {param}")
-                continue  # Error-based tapıldısa time-based lazım deyil
+                continue  # No need for time-based if error-based was found
 
             # Time-based blind
             vuln = await self._test_time_based(url, param)

@@ -120,7 +120,7 @@ class PortScanner:
         try:
             ip = socket.gethostbyname(host)
         except socket.gaierror:
-            console.print(f"[red]❌ {host} resolve edilə bilmədi[/red]")
+            console.print(f"[red]❌ Could not resolve {host}[/red]")
             return []
 
         console.print(f"\n[bold cyan]🔌 Port scan:[/bold cyan] {host} ({ip}) — {len(ports)} port")
