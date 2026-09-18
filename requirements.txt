@@ -2,7 +2,7 @@ httpx[http2]==0.27.0
 asyncio==3.4.3
 click==8.1.7
 rich==13.7.1
-pydantic==2.6.4
+pydantic==2.13.5
 python-nmap==0.7.1
 dnspython==2.6.1
 beautifulsoup4==4.12.3
