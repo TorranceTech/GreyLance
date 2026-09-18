@@ -8,12 +8,12 @@
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in BugScanner, please do NOT open a public GitHub Issue.
+If you discover a security vulnerability in GreyLance, please do NOT open a public GitHub Issue.
 
 Instead, report it privately via GitHub's Security Advisory:
-👉 https://github.com/eldarshiraliyev/BugScanner/security/advisories/new
+👉 https://github.com/TorranceTech/GreyLance/security/advisories/new
 
-Or contact directly: idkmyacc@proton.me
+<!-- TODO: add your preferred contact email here -->
 **What to include:**
 - Description of the vulnerability
 - Steps to reproduce
@@ -23,5 +23,5 @@ I will respond within 72 hours and aim to release a fix within 7 days.
 
 ## Scope
 
-BugScanner is a security testing tool. Please only test against systems 
+GreyLance is a security testing tool. Please only test against systems 
 you own or have explicit permission to test.

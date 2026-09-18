@@ -23,7 +23,7 @@ class HttpClient:
         self.rate_limiter = rate_limiter
         self.timeout = timeout
         self.verify_ssl = verify_ssl
-        self.user_agent = user_agent or "Mozilla/5.0 (compatible; BugScanner/1.0)"
+        self.user_agent = user_agent or "Mozilla/5.0 (compatible; GreyLance/1.0)"
         self.max_redirects = max_redirects
         self.extra_cookies = cookies or {}
         self.extra_headers = headers or {}
